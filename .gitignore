@@ -1,0 +1,17 @@
+# Node Dependencies
+**/node_modules/
+
+# Frontend Production & Secret Keys
+frontend/.env
+frontend/.env.local
+frontend/dist/
+
+# Backend Production & Secret Keys
+backend/.env
+backend/firebase-key.json
+backend/dist/
+backend/build/
+
+# Miscellaneous System Logs
+*.log
+.DS_Store

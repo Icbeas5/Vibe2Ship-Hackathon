@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-space-900 text-nova-text font-body antialiased selection:bg-nova-glow/30 overflow-hidden;
+  }
+  
+  /* Sci-fi layout Custom scrollbars - Rewritten with clean native CSS to remove compiler warnings */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background-color: #0B0E1A; /* Matches your space-900 token */
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: #1F2647; /* Matches your space-700 token */
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(79, 209, 197, 0.5); /* Matches your nova-glow opacity hover token */
+  }
+}
+
+/* Custom telemetry frame utilities */
+.telemetry-panel {
+  @apply bg-space-800/80 border border-space-700/60 backdrop-blur-md rounded-lg relative overflow-hidden transition-all duration-300;
+}
+
+.glow-headline {
+  text-shadow: 0 0 10px rgba(79, 209, 197, 0.35);
+}
+
+.pulse-amber {
+  animation: pulseGlow 2s infinite alternate;
+}
+
+@keyframes pulseGlow {
+  0% { box-shadow: 0 0 5px rgba(255, 122, 69, 0.2); }
+  100% { box-shadow: 0 0 20px rgba(255, 122, 69, 0.6); }
+}
