@@ -1,21 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
-import admin from 'firebase-admin';
-import { env } from '../utils/env.js';
+// 🌟 Import the safely initialized auth instance and configuration flag from your central config
+import { auth, isFirestoreConfigured } from '../config/firebase.js';
 
-// Initialize the Firebase Admin Engine singleton securely using your service account credentials
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(env.GOOGLE_APPLICATION_CREDENTIALS)
-  });
-}
-
-// Extend Express Request typing context dynamically to store our verified session operator
 export interface AuthenticatedRequest extends Request {
   user?: {
     uid: string;
     email?: string;
   };
 }
+
 export const requireAuth = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
   
@@ -25,17 +18,23 @@ export const requireAuth = async (req: AuthenticatedRequest, res: Response, next
 
   const token = authHeader.split(' ')[1];
 
-  // 🌟 BYPASS CHECK: Catch the demo token before it reaches the firebase-admin verifier
+  // 🌟 BYPASS CHECK: Catch the demo token before it reaches any verification pipelines
   if (token === 'demo-token-nova-system-override') {
     req.user = {
       uid: 'demo-operator-01',
       email: 'sandbox@nova.architecture'
     };
-    return next(); // Pass cleanly through the router!
+    return next();
+  }
+
+  // Fallback security block if your Firebase variables were completely missing and you aren't in demo mode
+  if (!isFirestoreConfigured || !auth) {
+    return res.status(503).json({ error: 'Database services offline. Try utilizing Local Override Demo Mode.' });
   }
 
   try {
-    const decodedToken = await admin.auth().verifyIdToken(token);
+    // 🌟 Use the central auth instance directly instead of calling admin.auth()
+    const decodedToken = await auth.verifyIdToken(token);
     req.user = {
       uid: decodedToken.uid,
       email: decodedToken.email
