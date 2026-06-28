@@ -7,11 +7,13 @@ let auth: any = null;
 let isFirestoreConfigured = false;
 
 try {
-  // 1. Production Mode: Check if we provided the raw JSON text string in Render env
-  const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  let serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
 
   if (serviceAccountJson) {
-    const serviceAccount = JSON.parse(serviceAccountJson);
+    // 🌟 SANITIZE STRING: Remove dangerous hidden newlines/formatting glitches before parsing
+    const sanitizedJson = serviceAccountJson.trim().replace(/\n/g, '\\n');
+    const serviceAccount = JSON.parse(sanitizedJson);
+    
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
       projectId: env.FIREBASE_PROJECT_ID || serviceAccount.project_id
@@ -22,7 +24,6 @@ try {
     isFirestoreConfigured = true;
     logger.info("Firebase Administrative Suite cloud container initialized securely from environment string matrix.");
 
-  // 2. Development Mode: Fallback to your original applicationDefault configuration
   } else if (env.FIREBASE_PROJECT_ID && env.GOOGLE_APPLICATION_CREDENTIALS) {
     admin.initializeApp({
       credential: admin.credential.applicationDefault(),
@@ -38,7 +39,8 @@ try {
     logger.warn("Firebase environmental variables missing. Falling back instantly to production-grade InMemory memory matrix repositories.");
   }
 } catch (e) {
-  logger.error("Failed to map cloud infrastructure container context", e);
+  // 🌟 THIS WILL PRINT THE EXACT SYNTAX ERROR IN YOUR RENDER LOGS IF IT FAILS
+  logger.error("Failed to map cloud infrastructure container context:", e);
 }
 
 export { db, auth, isFirestoreConfigured };
