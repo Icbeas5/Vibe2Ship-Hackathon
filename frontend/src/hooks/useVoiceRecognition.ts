@@ -3,13 +3,16 @@ import { useState, useEffect, useRef } from 'react';
 export const useVoiceRecognition = (onTranscriptComplete: (text: string) => void) => {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
+  // 🌟 ADDED: Track if the browser actually supports voice transcription
+  const [isSupported, setIsSupported] = useState(true); 
   const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
-    // Initialize Web Speech API safely inside container context
+    // Check for browser capability
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       console.warn("Speech recognition core not supported within this browser engine framework.");
+      setIsSupported(false);
       return;
     }
 
@@ -51,10 +54,8 @@ export const useVoiceRecognition = (onTranscriptComplete: (text: string) => void
         recognition.stop();
         setIsListening(false);
       } else {
-        // 🌟 SAFETY LOCKOUT: Stop any dangling process instances before trying to initiate boot
         recognition.abort(); 
         
-        // Brief timeout ensures the native audio hardware engine completely registers the clean slate state
         setTimeout(() => {
           try {
             recognition.start();
@@ -71,6 +72,7 @@ export const useVoiceRecognition = (onTranscriptComplete: (text: string) => void
   return {
     isListening,
     transcript,
-    toggleListening
+    toggleListening,
+    isSupported // 🌟 RETURN THE EXPECTED FLAG FOR YOUR COMPONENT
   };
 };
