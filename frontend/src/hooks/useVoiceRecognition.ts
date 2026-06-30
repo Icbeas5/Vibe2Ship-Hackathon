@@ -1,90 +1,84 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
-export const useVoiceRecognition = (onTranscriptComplete: (text: string) => void) => {
+export const useVoiceRecognition = (onTranscriptComplete?: (text: string) => void) => {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
-  // 🌟 ADDED: Track if the browser actually supports voice transcription
-  const [isSupported, setIsSupported] = useState(true); 
+  const [isSupported, setIsSupported] = useState(false);
+  
   const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
-    // Check for browser capability
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      console.warn("Speech recognition core not supported within this browser engine framework.");
-      setIsSupported(false);
-      return;
-    }
+    if (SpeechRecognition) {
+      setIsSupported(true);
+      const rec = new SpeechRecognition();
+      rec.continuous = false;
+      rec.interimResults = false;
+      rec.lang = 'en-US';
 
-    const rec = new SpeechRecognition();
-    rec.continuous = false;
-    rec.interimResults = false;
-    rec.lang = 'en-US';
+      rec.onstart = () => {
+        setIsListening(true);
+      };
 
-    rec.onstart = () => {
-      setIsListening(true);
-    };
+      rec.onend = () => {
+        setIsListening(false);
+      };
 
-    rec.onend = () => {
-      setIsListening(false);
-    };
+      rec.onerror = (event: any) => {
+        console.error("🎙️ Speech Recognition Engine Error:", event.error);
+        setIsListening(false);
+      };
 
-   rec.onresult = (event: any) => {
-      let speechText = "";
-      
-      if (event.results?.[0]?.[0]?.transcript) {
-        speechText = event.results[0][0].transcript;
-      } else if (typeof event === 'string') {
-        speechText = event;
-      }
-
-      // 🌟 FORCE Primitive String Delivery
-      const finalString = (speechText || "").toString().trim();
-      
-      if (finalString && finalString !== "undefined" && finalString.length > 0) {
-        setTranscript(finalString);
-        if (onTranscriptComplete) {
-          onTranscriptComplete(finalString);
+      rec.onresult = (event: any) => {
+        console.log("🎙️ Raw Voice Event Received:", event);
+        
+        // 🌟 EXHAUSTIVE AND SECURE EXTRACTION LAYER
+        const rawTranscript = event.results?.[0]?.[0]?.transcript;
+        
+        // Block null, undefined, or empty string artifacts immediately
+        if (rawTranscript === undefined || rawTranscript === null) {
+          console.warn("⚠️ Blocked a raw undefined/null speech event frame.");
+          return;
         }
-      }
-    };
 
-    rec.onerror = (event: any) => {
-      console.error("Speech engine pipeline error frame:", event.error);
-      setIsListening(false);
-    };
+        const cleanString = String(rawTranscript).trim();
 
-    recognitionRef.current = rec;
+        // Strict verification: Ensure it isn't empty or the literal word string "undefined"
+        if (cleanString && cleanString !== "" && cleanString !== "undefined") {
+          console.log("🎯 Validated Voice Payload:", cleanString);
+          setTranscript(cleanString);
+          
+          if (onTranscriptComplete) {
+            onTranscriptComplete(cleanString);
+          }
+        } else {
+          console.warn("⚠️ Filtered out an invalid or blank voice transcript payload string.");
+        }
+      };
+
+      recognitionRef.current = rec;
+    }
   }, [onTranscriptComplete]);
 
-  const toggleListening = () => {
-    const recognition = recognitionRef.current;
-    if (!recognition) return;
+  const toggleListening = useCallback(() => {
+    if (!recognitionRef.current) return;
 
-    try {
-      if (isListening) {
-        recognition.stop();
-        setIsListening(false);
-      } else {
-        recognition.abort(); 
-        
-        setTimeout(() => {
-          try {
-            recognition.start();
-          } catch (innerError) {
-            console.warn("Prevented recursive initialization collision:", innerError);
-          }
-        }, 50);
+    if (isListening) {
+      recognitionRef.current.stop();
+    } else {
+      setTranscript('');
+      try {
+        recognitionRef.current.start();
+      } catch (err) {
+        console.error("Failed to boot audio pipeline stream node:", err);
       }
-    } catch (e) {
-      console.error("Failed to map control state modifications to native browser runtime layer:", e);
     }
-  };
+  }, [isListening]);
 
   return {
     isListening,
     transcript,
-    toggleListening,
-    isSupported // 🌟 RETURN THE EXPECTED FLAG FOR YOUR COMPONENT
+    isSupported,
+    toggleListening
   };
 };
