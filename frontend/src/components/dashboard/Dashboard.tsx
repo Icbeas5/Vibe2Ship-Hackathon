@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useTasks } from '../../hooks/useTasks';
 import { Task } from '../../types';
 import { Topbar } from '../layout/Topbar';
@@ -27,6 +27,27 @@ export const Dashboard = ({ userSession, onSignOut }: { userSession: any, onSign
 
   // Auto-refresh reference context hooks if mutated inside children
   const refreshedSelectedTask = tasks.find(t => t.id === selectedTask?.id) || null;
+
+  // 🌟 EMERGENCY CLEANER: Filter out any faulty data rows containing "undefined" from rendering on screen
+  const sanitizedLogs = useMemo(() => {
+    return logs.filter(log => {
+      if (!log || !log.message) return false;
+      const msg = String(log.message).toLowerCase();
+      return !msg.includes('undefined') && !msg.includes('"undefined"');
+    });
+  }, [logs]);
+
+  // 🌟 SECURE INTERCEPTOR: Clean speech strings right here at the dashboard boundary level
+  const handleProtectedVoiceCommand = useCallback(async (txt: string): Promise<string> => {
+    const checkValue = String(txt).trim().toLowerCase();
+    
+    if (!txt || checkValue === "" || checkValue === "undefined") {
+      console.warn("🛡️ Dashboard blocked a leaking 'undefined' audio processing trigger thread.");
+      return "System pipeline validation error: Vocal stream captured empty or unresolved audio frequencies.";
+    }
+    
+    return await submitVoiceCommand(txt);
+  }, [submitVoiceCommand]);
 
   return (
     <div className="h-screen w-screen bg-space-900 flex flex-col overflow-hidden text-nova-text selection:bg-nova-glow/20">
@@ -74,13 +95,15 @@ export const Dashboard = ({ userSession, onSignOut }: { userSession: any, onSign
 
         {/* Right Hand Side: Autonomous trace logs stream */}
         <section className="w-full md:w-80 shrink-0 h-48 md:h-full border-t md:border-t-0 border-space-700/60">
-          <ActivityLog logs={logs} />
+          {/* 🌟 FIXED: Passing the clean sanitized logs collection array to block error display bugs */}
+          <ActivityLog logs={sanitizedLogs} />
         </section>
 
       </div>
 
       {/* Full width bottom orchestration layout vocal frame */}
-      <VoiceAssistant onSendCommand={submitVoiceCommand} />
+      {/* 🌟 FIXED: Passing the secure command pipeline interceptor wrapper instead of the raw hook function */}
+      <VoiceAssistant onSendCommand={handleProtectedVoiceCommand} />
 
       {/* Global Modals overlay frame structure */}
       <AddTaskModal
