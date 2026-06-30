@@ -18,12 +18,25 @@ export const VoiceAssistant = ({ onSendCommand }: { onSendCommand: (txt: string)
     setProcessing(false);
   };
 
-  // 🌟 FIXED: Wrapped in useCallback to stop function recreation and preserve the transcription string payload
-  const handleSpeechFinalized = useCallback(async (transcriptText: string) => {
-    if (!transcriptText || !transcriptText.trim()) return;
-    setInput(transcriptText);
-    await dispatchCommand(transcriptText);
-  }, [onSendCommand]); // Depend on onSendCommand to safely match the execution tree
+  const handleSpeechFinalized = useCallback(async (transcriptText: any) => {
+    // 🌟 DETECT AND FIX: If the payload is an event object or the literal string "undefined", safely extract it
+    let cleanText = "";
+    
+    if (typeof transcriptText === 'string' && transcriptText !== "undefined") {
+      cleanText = transcriptText;
+    } else if (transcriptText && typeof transcriptText === 'object') {
+      cleanText = transcriptText.transcript || transcriptText.text || "";
+    }
+
+    // Completely drop empty or broken leaks
+    if (!cleanText || !cleanText.trim() || cleanText === "undefined") {
+      console.warn("⚠️ Intercepted broken 'undefined' voice string leak.");
+      return;
+    }
+
+    setInput(cleanText);
+    await dispatchCommand(cleanText);
+  }, [onSendCommand]);
 
   const { isListening, toggleListening, isSupported } = useVoiceRecognition(handleSpeechFinalized);
 

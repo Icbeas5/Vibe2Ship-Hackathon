@@ -29,17 +29,23 @@ export const useVoiceRecognition = (onTranscriptComplete: (text: string) => void
       setIsListening(false);
     };
 
-    rec.onresult = (event: any) => {
-      // 🌟 FIXED: Added a robust fallback to ensure it successfully reads different browser event engines
-      const resultText = event.results?.[0]?.[0]?.transcript || 
-                         event.result || 
-                         "";
-                         
-      console.log("🎙️ Detected Voice Processing Result:", resultText);
+   rec.onresult = (event: any) => {
+      let speechText = "";
       
-      setTranscript(resultText);
-      if (onTranscriptComplete && resultText) {
-        onTranscriptComplete(resultText);
+      if (event.results?.[0]?.[0]?.transcript) {
+        speechText = event.results[0][0].transcript;
+      } else if (typeof event === 'string') {
+        speechText = event;
+      }
+
+      // 🌟 FORCE Primitive String Delivery
+      const finalString = (speechText || "").toString().trim();
+      
+      if (finalString && finalString !== "undefined" && finalString.length > 0) {
+        setTranscript(finalString);
+        if (onTranscriptComplete) {
+          onTranscriptComplete(finalString);
+        }
       }
     };
 
