@@ -30,9 +30,15 @@ export const useVoiceRecognition = (onTranscriptComplete: (text: string) => void
     };
 
     rec.onresult = (event: any) => {
-      const resultText = event.results[0][0].transcript;
+      // 🌟 FIXED: Added a robust fallback to ensure it successfully reads different browser event engines
+      const resultText = event.results?.[0]?.[0]?.transcript || 
+                         event.result || 
+                         "";
+                         
+      console.log("🎙️ Detected Voice Processing Result:", resultText);
+      
       setTranscript(resultText);
-      if (onTranscriptComplete) {
+      if (onTranscriptComplete && resultText) {
         onTranscriptComplete(resultText);
       }
     };

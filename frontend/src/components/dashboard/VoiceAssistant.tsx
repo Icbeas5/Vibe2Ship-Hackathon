@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react'; // 🌟 UPDATED: Imported useCallback
 import { useVoiceRecognition } from '../../hooks/useVoiceRecognition';
 import { Mic, MicOff, Send, Cpu } from 'lucide-react';
 
@@ -6,14 +6,6 @@ export const VoiceAssistant = ({ onSendCommand }: { onSendCommand: (txt: string)
   const [input, setInput] = useState('');
   const [responseLog, setResponseLog] = useState<string>('SYSTEM ONLINE: Standing by for telemetry vocal ingestion pipeline...');
   const [processing, setProcessing] = useState(false);
-
-  const handleSpeechFinalized = async (transcriptText: string) => {
-    if (!transcriptText.trim()) return;
-    setInput(transcriptText);
-    await dispatchCommand(transcriptText);
-  };
-
-  const { isListening, toggleListening, isSupported } = useVoiceRecognition(handleSpeechFinalized);
 
   const dispatchCommand = async (commandString: string) => {
     if (!commandString.trim()) return;
@@ -25,6 +17,15 @@ export const VoiceAssistant = ({ onSendCommand }: { onSendCommand: (txt: string)
     setInput('');
     setProcessing(false);
   };
+
+  // 🌟 FIXED: Wrapped in useCallback to stop function recreation and preserve the transcription string payload
+  const handleSpeechFinalized = useCallback(async (transcriptText: string) => {
+    if (!transcriptText || !transcriptText.trim()) return;
+    setInput(transcriptText);
+    await dispatchCommand(transcriptText);
+  }, [onSendCommand]); // Depend on onSendCommand to safely match the execution tree
+
+  const { isListening, toggleListening, isSupported } = useVoiceRecognition(handleSpeechFinalized);
 
   return (
     <div className="w-full bg-space-800 border-t border-space-700 p-3 flex flex-col md:flex-row items-center justify-between gap-3 font-mono">
